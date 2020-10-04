@@ -1,0 +1,51 @@
+---
+- name: Create a Custome webserver with password authentication
+  hosts: web
+  tasks:
+    - name: Install the httpd package
+      yum:
+        name: httpd
+        state: present
+
+    - name: Start the Apache web server
+      service:
+        name: httpd
+        state: started
+        enabled: yes
+
+    - name: Create a dir under /var/www/html
+      file:
+        path: /var/www/html/secret
+        state: directory
+        owner: root
+        group: root
+        mode: '0755'
+
+    - name: Download the .htpasswd 
+      get_url:
+        url: http://controle.classroom.example.com/content/htpasswd
+        dest: /var/www/html/.htpasswd
+    
+    - name: Download the .htaccess
+      get_url:
+        url: http://controle.classroom.example.com/content/htaccess
+        dest: /var/www/html/.htaccess
+
+    - name: Entry for password authentication in httpd.conf file
+      replace:
+        path: /etc/httpd/conf/httpd.conf
+        regexp: "AllowOverride none"
+        replace: "AllowOverride AuthConfig"
+
+    - name: Copy the content
+      copy:
+        content: "This node {{ ansible_fqdn }} is protected"
+        dest: /var/www/html/secret/index.html
+        owner: apache
+        group: root
+        mode: '0644'
+
+    - name: Restart the httpd service
+      service: 
+        name: httpd
+        state: restarted
